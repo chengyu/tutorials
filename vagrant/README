@@ -1,0 +1,3 @@
+To set up the env, one should ...
+1. edit env.sh in tutorial (repo's name changed)
+2. run script in examples, to set up veth

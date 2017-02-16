@@ -1,0 +1,60 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$essential = <<SCRIPT
+    sudo apt-get update
+    sudo apt-get upgrade
+    sudo apt-get -y install build-essential python-pip libcrypto++-dev libsqlite3-dev libboost-all-dev libssl-dev git dh-autoreconf openssl cmake libpcap-dev python-yaml pkg-config libJudy-dev libgmp-dev bison libtool flex vim mininet
+    sudo pip install scapy networkx
+SCRIPT
+
+$switch_script = <<SWITCH_SCRIPT
+    /vagrant/setup-switch.sh
+SWITCH_SCRIPT
+
+Vagrant.configure("2") do |config|
+
+    # Configure switch, i.e., device under test (DUT)
+    config.vm.define "switch" do |switch|
+        switch.vm.box = "ubuntu/trusty64"
+
+	switch.vm.provider "virtualbox" do |virtualbox|
+          virtualbox.memory = "4096"
+          virtualbox.cpus = "4"
+	  virtualbox.name = "Ubuntu_#{Time.now.getutc.to_i}"
+	  virtualbox.customize [
+	      "storagectl", :id, 
+	      "--name", "SATAController", 
+	      "--controller", "IntelAHCI", 
+	      "--portcount", "1", 
+	      "--hostiocache", "on"
+	  ]
+	  virtualbox.customize [
+	      "clonehd", "#{ENV["HOME"]}/VirtualBox VMs/#{virtualbox.name}/box-disk1.vmdk", 
+	                 "#{ENV["HOME"]}/VirtualBox VMs/#{virtualbox.name}/ubuntu.vdi", 
+	      "--format", "VDI"
+	  ]
+	  virtualbox.customize [
+	      "modifyhd", "#{ENV["HOME"]}/VirtualBox VMs/#{virtualbox.name}/ubuntu.vdi",
+	      "--resize", 102400
+	  ]
+	  virtualbox.customize [
+	      "storageattach", :id, 
+	      "--storagectl", "SATAController", 
+	      "--port", "0", 
+	      "--device", "0", 
+	      "--type", "hdd",
+	      "--nonrotational", "on",
+	      "--medium", "#{ENV["HOME"]}/VirtualBox VMs/#{virtualbox.name}/ubuntu.vdi" 
+	  ]
+	end
+
+        # Setup switch
+        #switch.vm.provision "shell", inline: $switch_script
+    end
+
+    # install essentials
+    config.vm.provision "shell", inline: $essential
+end
+
+
